@@ -1,0 +1,19 @@
+<launch>
+  
+  <!-- Run visual odom node -->
+    <node pkg="visual_odometry" type="visual_odometry_node" name="visual_odometry">
+    <param name="bias" type="double" value="0.153705"/> 
+    <remap from="image_raw" to="/camera/image_raw"/>
+    </node>
+    
+    <!-- Run robot_odometry -->
+    <node pkg="robot_odometry" type="robot_odometry_node" name="robot_odometry">
+         <remap from="/visual/distcov" to="/visual_odometry/distcov"/>
+    </node>
+
+    <!-- Run trajectoryplotter -->
+    <node pkg="robot_odometry" type="trajectoryplotter_node.py" name="trajectoryplotter">
+       <remap from="odom" to="robot_odometry/odom"/>
+    </node>
+    
+</launch>
