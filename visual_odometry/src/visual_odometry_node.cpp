@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include "ros/ros.h"
+#include <vector>
 #include <image_transport/image_transport.h>
 
 #include <tf/transform_broadcaster.h>
@@ -24,7 +25,8 @@
 #include "boost/thread.hpp"
 #include "VisualOdometry.h"
 
-#include "custom_msgs/DistanceCovStamped.h"
+//#include "custom_msgs/DistanceCovStamped.h"
+#include "visual_odometry/DistanceCovStamped.h"
 #include "geometry_msgs/QuaternionStamped.h"
 
 #include <sensor_msgs/image_encodings.h>
@@ -69,7 +71,7 @@ class OdometryRunner {
         ros::Publisher distcov_pub;
         ros::Subscriber imu_sub;
         //geometry_msgs::TwistWithCovarianceStamped twistcov; // THIS IS OUR NODE MAIN MSG
-        custom_msgs::DistanceCovStamped distcov;
+        visual_odometry::DistanceCovStamped distcov;
 
         ros::Time current_time, last_time;
         
@@ -124,7 +126,7 @@ class OdometryRunner {
 
             /*Odometry Publisher Initialize*/
             //this->twistcov_pub = nh.advertise<geometry_msgs::TwistWithCovarianceStamped>(DEFAULT_OUTPUT_TOPIC, 50);
-            this->distcov_pub = nh.advertise<custom_msgs::DistanceCovStamped>(DEFAULT_OUTPUT_TOPIC, 50);
+            this->distcov_pub = nh.advertise<visual_odometry::DistanceCovStamped>(DEFAULT_OUTPUT_TOPIC, 50);
             this->current_time = ros::Time::now();
             this->last_time = ros::Time::now();
 
@@ -247,7 +249,8 @@ class OdometryRunner {
                     twistcov_pub.publish(twistcov);*/
 
                     this->distcov.header.stamp = this->current_time;
-                    this->distcov.deltatime = dur;
+                    //this->distcov.deltatime = dur;
+                    this->distcov.deltatime.data = dur;
                     this->distcov.translation.x = output_dist.at<double>(0);
                     this->distcov.translation.y = output_dist.at<double>(1);
                     this->distcov.translation.z = 0;

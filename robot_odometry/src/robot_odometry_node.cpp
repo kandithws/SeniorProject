@@ -1,12 +1,14 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-#include "custom_msgs/DistanceCovStamped.h"
+//#include "custom_msgs/DistanceCovStamped.h"
+#include "visual_odometry/DistanceCovStamped.h"
 #include "geometry_msgs/TwistWithCovarianceStamped.h"
 #include "boost/thread.hpp"
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include "std_msgs/Duration.h"
 #include "geometry_msgs/QuaternionStamped.h"
 #include "geometry_msgs/Vector3.h"
 #include "geometry_msgs/Vector3Stamped.h"
@@ -95,17 +97,18 @@ class RobotRunner{
 
 
 
-          void distcovCallback(const custom_msgs::DistanceCovStampedConstPtr& msg)
+          void distcovCallback(const visual_odometry::DistanceCovStampedConstPtr& msg)
           {
             /*msg -> element , */
-            custom_msgs::DistanceCovStamped distcov_buf;
+            visual_odometry::DistanceCovStamped distcov_buf;
             
             this->dx = msg->translation.x;
             this->dy = msg->translation.y;
             this->dth = msg->angular.z;
 
             this->currentstamp = msg->header.stamp;
-            this->dt = msg->deltatime.toSec();
+            this->dt = msg->deltatime.data.toSec();
+
 
             /*Change to Robot Transform*/  
             this->dx = this->dx;

@@ -5,8 +5,7 @@ project(visual_odometry)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
+  roscpp rospy
   roslib
   std_msgs
   cv_bridge
@@ -15,14 +14,12 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
   tf
-  custom_msgs
- #message_generation 
+  message_generation 
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
-
-
+find_package(OpenCV REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -54,11 +51,10 @@ find_package(Boost REQUIRED COMPONENTS system)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#   FILES
-#   TwistedCovwithTimediff.msg
-#   DistanceCovStamped.msg
-# )
+add_message_files(
+   FILES
+   DistanceCovStamped.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -75,13 +71,13 @@ find_package(Boost REQUIRED COMPONENTS system)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-#generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-#   geometry_msgs   
+generate_messages(
+   DEPENDENCIES
+   std_msgs
+   geometry_msgs   
 #   nav_msgs   	
 #   sensor_msgs
-# )
+ )
 
 ###################################
 ## catkin specific configuration ##
@@ -95,7 +91,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES visual_odometry
-  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf custom_msgs
+  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf message_runtime
   DEPENDS system_lib
 )
 
@@ -124,12 +120,12 @@ list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -
 add_executable(visual_odometry_node src/visual_odometry_node.cpp src/VisualOdometry.cpp)
 add_executable(camera_config_node src/camera_config_node.cpp)
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(visual_odometry_node ${catkin_EXPORTED_TARGETS})
-add_dependencies(camera_config_node ${catkin_EXPORTED_TARGETS})
+add_dependencies(visual_odometry_node ${catkin_EXPORTED_TARGETS} ${OpenCV_LIBRARIES})
+add_dependencies(camera_config_node ${catkin_EXPORTED_TARGETS} ${OpenCV_LIBRARIES})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(visual_odometry_node ${catkin_LIBRARIES})
-target_link_libraries(camera_config_node ${catkin_LIBRARIES})
+target_link_libraries(visual_odometry_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(camera_config_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 
 

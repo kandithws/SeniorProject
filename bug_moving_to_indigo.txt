@@ -1,0 +1,26 @@
+Ubuntu 14.04.3 LTS && Moving ROS from Hydro -> Indigo : BUGS
+
+1.OpenCV nonfree-dev(SURF, SIFT) notfound 
+	Solution : 
+		1.1 Install ros indigo normally with opencv package provided by ROS
+		1.2 Add OpenCV "new" repository
+			sudo add-apt-repository --yes ppa:xqms/opencv-nonfree
+			sudo apt-get update 
+		1.3 upgrade OpenCV library (e.g. tick Mark as Upgrade in Synaptic, etc.)
+		1.4 sudo apt-get install libopencv-nonfree-dev
+		1.5 In CMakelists.txt that use "nonfree module" (e.g. SURF,SIFT), Add These Lines
+			- find_package(OpenCV REQUIRED)
+			- add_dependencies( "Node's Name"  ${catkin_EXPORTED_TARGETS} ${OpenCV_LIBRARIES})
+			- target_link_libraries( "Node's Name" ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+2. std_msgs/Duration, compile error
+	Solution : Adding ".data" after the variable
+
+3. Cannot adjust Screen Brightness (by using keyboard shortcut)
+	Solution : N/A
+
+4. Wired LAN cannot be USED
+	Solution : N/A
+
+
+

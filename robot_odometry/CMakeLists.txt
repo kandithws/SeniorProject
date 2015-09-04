@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
+  #visual_odometry
   message_generation
 )
 
@@ -110,26 +111,26 @@ list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -
 
 ## Declare a cpp executable
 add_executable(robot_odometry_node src/robot_odometry_node.cpp)
-add_executable(test_circular_node src/circular_odo_publisher.cpp)
-add_executable(imu_orientation_node src/imu_orientation_node.cpp src/Movingavg.cpp)
-add_executable(sandbox_node src/sandbox_node.cpp)
+#add_executable(test_circular_node src/circular_odo_publisher.cpp)
+#add_executable(imu_orientation_node src/imu_orientation_node.cpp src/Movingavg.cpp)
+#add_executable(sandbox_node src/sandbox_node.cpp)
 add_executable(vectornav_driver_node src/vectornav_driver_node.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(robot_odometry_node robot_odometry_generate_messages_cpp)
 add_dependencies(robot_odometry_node ${catkin_EXPORTED_TARGETS})
-add_dependencies(test_circular_node ${catkin_EXPORTED_TARGETS})
-add_dependencies(imu_orientation_node ${catkin_EXPORTED_TARGETS})
-add_dependencies(sandbox_node ${catkin_EXPORTED_TARGETS})
+#add_dependencies(test_circular_node ${catkin_EXPORTED_TARGETS})
+#add_dependencies(imu_orientation_node ${catkin_EXPORTED_TARGETS})
+#add_dependencies(sandbox_node ${catkin_EXPORTED_TARGETS})
 add_dependencies(vectornav_driver_node ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(robot_odometry_node ${catkin_LIBRARIES})
 
-target_link_libraries(test_circular_node ${catkin_LIBRARIES})
+#target_link_libraries(test_circular_node ${catkin_LIBRARIES})
 
-target_link_libraries(imu_orientation_node ${catkin_LIBRARIES})
+#target_link_libraries(imu_orientation_node ${catkin_LIBRARIES})
 
-target_link_libraries(sandbox_node ${catkin_LIBRARIES})
+#target_link_libraries(sandbox_node ${catkin_LIBRARIES})
 target_link_libraries(vectornav_driver_node  ${catkin_LIBRARIES})
 
 #############
