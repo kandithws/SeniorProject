@@ -25,7 +25,6 @@ VisualOdometry::VisualOdometry(Mat Intrinsic)
  dsvd(),
  mat_1(3, 3,CV_64F,Scalar(0.0)),
  mat_2(3, 3,CV_64F,Scalar(0.0)),
- detector(400),
  matcher(NORM_L2)
  {
     this->needToInit = true;
@@ -49,7 +48,6 @@ VisualOdometry::VisualOdometry(Mat Intrinsic,unsigned char setup)
  dsvd(),
  mat_1(3, 3,CV_64F,Scalar(0.0)),
  mat_2(3, 3,CV_64F,Scalar(0.0)),
- detector(400),
  matcher(NORM_L2)
  {
     this->needToInit = true;
@@ -120,9 +118,7 @@ void VisualOdometry::reshape_square2vect(cv::Mat Inputmat,cv::Mat& Outputmat,uns
         {
            Outputmat.at<T>(it++,0) = Inputmat.at<T>(i,j);
         }
-       
     }
-    
 }
 
 
@@ -371,10 +367,7 @@ bool VisualOdometry::estimate_svdelementjacobian(cv::Mat inputD,cv::Mat& Ju,cv::
           vect_Jv.push_back(Jv_buff.at<double>(i,j));
         }
       }
-     
-
-      
-      vect_Ju.copyTo(Ju.col(jcb_col));
+        vect_Ju.copyTo(Ju.col(jcb_col));
       vect_Jv.copyTo(Jv.col(jcb_col));
       jcb_col++;
 
@@ -647,8 +640,6 @@ bool VisualOdometry::find_yawcovariance(cv::Mat covUVD,double& covYaw)
   Mat covYawbuff = JYaw * covUVD * JYaw.t();
   covYaw = covYawbuff.at<double>(0,0); 
 }
-
-
 //----------------------------Public Function-------------------------------------------------------
 
 /*----------------- Using Opitcal Flow Tracker -------------------------------------------------*/
@@ -679,8 +670,6 @@ bool VisualOdometry::compute_odometry_lkoptflow(Mat InputFrame,Mat& Drawframe,Ma
         {
             drawoptflow(Drawframe);    
         }            
-      
-          
         //Repacking tracked points form status
 
         for (int j = 0; j < this->points2.size(); j++ ) 
@@ -698,8 +687,6 @@ bool VisualOdometry::compute_odometry_lkoptflow(Mat InputFrame,Mat& Drawframe,Ma
         vector<Point2f>::iterator newIter2 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
         this->points1.resize( newIter1 -  this->points1.begin() );
         this->points2.resize( newIter2 -  this->points2.begin() );
-                   
-                   
         this->H = findHomography(this->points2,this->points1,CV_RANSAC,3,cv::noArray() );
 
         /*cout << "-----------Homography Matrix:H----------" << endl;
@@ -720,17 +707,12 @@ bool VisualOdometry::compute_odometry_lkoptflow(Mat InputFrame,Mat& Drawframe,Ma
            //cout << "---------- N--------"<< endl;
            //this->printcvMat(n);
             Normal = this->n;
-            
             this->result = true;
-        
         }
         else
         {
           cout << "wait for next sequence" << endl;
-            this->result = false; 
-
-
-
+            this->result = false;
         }
 
         goodFeaturesToTrack(this->grayFrames, this->points1, MAX_COUNT, 0.01, 10, Mat(),3, 0, 0.04);
@@ -741,22 +723,15 @@ bool VisualOdometry::compute_odometry_lkoptflow(Mat InputFrame,Mat& Drawframe,Ma
     
     if(this->decomp_check) //if Decomp Error -> Go get new sample image
     {
-        
         swap(this->points2,this->points1);
         this->points1.clear();   //pts2 == prev, pts1 == newpts
         this->grayFrames.copyTo(this->prevGrayFrame);  
         return this->result;
     }
-
 }
 
-
-
-
-
-
-
-bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& Drawframe,cv::Mat& Rotation,cv::Mat& Translation,cv::Mat& Normal,cv::Mat& Covt,double& covYaw)
+bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& Drawframe,cv::Mat& Rotation,
+                                                   cv::Mat& Translation,cv::Mat& Normal,cv::Mat& Covt,double& covYaw)
 {
 	InputFrame.copyTo(this->rgbFrames);
 	cvtColor(this->rgbFrames,this->grayFrames, CV_BGR2GRAY);
@@ -776,10 +751,8 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
 
     else if (!(this->points2.empty()))
     {
-                   
-    	calcOpticalFlowPyrLK(this->prevGrayFrame, this->grayFrames, this->points2, this->points1,this->status, this->err, this->winSize, 3, this->termcrit, 0, 0.001);
-        
-
+    	calcOpticalFlowPyrLK(this->prevGrayFrame, this->grayFrames, this->points2, this->points1,this->status,
+                             this->err, this->winSize, 3, this->termcrit, 0, 0.001);
         if(this->drawableflag)
         {
             //cout << "--drawing2--" << endl ; 
@@ -799,20 +772,15 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
                 this->points2[j].y = 0.0;
             }
         }
-                  
         vector<Point2f>::iterator newIter1 = std::remove_if( this->points1.begin() , this->points1.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
         vector<Point2f>::iterator newIter2 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
         this->points1.resize( newIter1 -  this->points1.begin() );
         this->points2.resize( newIter2 -  this->points2.begin() );
-                   
-                   
-        
         std::vector<uchar> Ransac_mask;
         //this->H = findHomography(this->points2,this->points1,CV_RANSAC,3,cv::noArray() );
         this->H = findHomography(this->points2,this->points1,CV_RANSAC,3,Ransac_mask );
         //cout << "-----------Homography Matrix:H----------" << endl;
         //this->printcvMat(H);
-
 
         /*-----Ransac mask----*/
         for (int j = 0; j < this->points2.size(); j++ ) 
@@ -840,9 +808,6 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
         {
           
           int ran_buff = rand() % this->points1.size();
-   
-
-          
           /*this->ransac_ptsold.at<double>(2*k,0) = this->points2[ran_buff].x;
           this->ransac_ptsnew.at<double>(2*k,0) = this->points1[ran_buff].x; 
 
@@ -931,9 +896,6 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
     
         find_yawcovariance(covUVD,covYaw);
           cout << "Cov Yaw :: " << covYaw << endl;
-
-
-
         if(this->decomp_check)
         { 
             //cout << "---------- R--------"<< endl;
@@ -947,15 +909,11 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
             Normal = this->n;
             
             this->result = true;
-        
         }
         else
         {
         	cout << "wait for next sequence" << endl;
-            this->result = false; 
-
-
-
+            this->result = false;
         }
 
         goodFeaturesToTrack(this->grayFrames, this->points1, MAX_COUNT, 0.01, 10, Mat(),3, 0, 0.04);
@@ -972,115 +930,7 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
         this->grayFrames.copyTo(this->prevGrayFrame);  
         return this->result;
     }
-
-
-
-
 }
-
-
-/*----------------------   Using SURF Feature --------------------------*/
-
-bool VisualOdometry::compute_odometry_SURF(cv::Mat InputFrame,cv::Mat& Drawframe,cv::Mat& lastDrawframe,cv::Mat& Rotation,cv::Mat& Translation,cv::Mat& Normal)
-{
-
-    InputFrame.copyTo(this->rgbFrames);
-    cvtColor(this->rgbFrames,this->grayFrames, CV_BGR2GRAY);
-    
-    if(this->needToInit)
-    {
-        
-        
-      //-- Step 0: Detect the keypoints using SURF Detector of Previous image
-      this->detector.detect(this->grayFrames , this->keypoints_new );
-
-      this->extractor.compute(this->grayFrames,this->keypoints_new,this->descriptors_new);
- 
-
-        this->needToInit = false;
-    } 
-    else if(!(this->keypoints_prev.empty()))
-    {
-      
-     
-
-      //-- Step 1: Detect the keypoints using SURF Detector
-      this->detector.detect(this->grayFrames,this->keypoints_new);
-     
-      //-- Step 2: Calculate descriptors (feature vectors)
-      this->extractor.compute(this->grayFrames,this->keypoints_new,this->descriptors_new);
-       
-
-      //-- Step 3: Matching descriptor vectors using BFmatcher
-      
-      matcher.match( descriptors_prev, descriptors_new, matches );
-     
-         
-
-      for( int i = 0; i < matches.size(); i++ )
-      {
-
-    //-- Get the keypoints from the good matches
-       this->points2.push_back( keypoints_prev[ matches[i].queryIdx ].pt );
-       this->points1.push_back( keypoints_new[ matches[i].trainIdx ].pt );
-      }
-      
-
-      if(this->drawableflag)
-      {
-          
-          this->drawmatch(Drawframe,lastDrawframe);    
-      }            
-
-
-      this->H = findHomography(this->points2,this->points1,CV_RANSAC,3,cv::noArray() );
-
-      cout << "---------Homography--------" << endl;
-      this->printcvMat(this->H);
-
-      this->decomp_check = this->homodecomp_compute(this->H,this->R,this->t,this->n); 
-
-        if(this->decomp_check)
-        { 
-          cout << "---------- R--------"<< endl;
-            this->printcvMat(R);
-            Rotation = this->R;
-            cout << "---------- T--------"<< endl;
-            this->printcvMat(t);
-            Translation = this->t;
-            cout << "---------- N--------"<< endl;
-            this->printcvMat(n);
-            Normal = this->n;
-            
-            this->result = true;
-        
-        }
-  
-    }
-      
-    if(this->decomp_check) //if Decomp Error -> Go get new sample image
-    {
-        
-        swap(this->points2,this->points1);
-        swap(this->keypoints_prev,this->keypoints_new);
-        this->descriptors_prev = this->descriptors_new;
-
-        this->descriptors_new = Mat();
-        this->keypoints_new.clear();
-        this->points1.clear();   //pts2 == prev, pts1 == newpts
-        this->grayFrames.copyTo(this->prevGrayFrame);  
-       
-        return this->result;
-    }
-      
-      
-      //-- Get the corners from the image_1 ( the object to be "detected" )
-
-}
-
-
-
-
 
 void VisualOdometry::printcvMat(Mat P)
 {
@@ -1110,8 +960,7 @@ void VisualOdometry::dcm2angle(Mat R,double& roll,double& pitch,double& yaw,bool
         yaw *= 180.0/PI;
         pitch *= 180.0/PI;
         roll *= 180/PI;
-    }    
-
+    }
 }
 
 Mat VisualOdometry::rpy2homography(double roll,double pitch,double yaw,bool mode)
@@ -1142,8 +991,6 @@ Mat VisualOdometry::rpy2homography(double roll,double pitch,double yaw,bool mode
 
         ]
     */
-    
-
     Rgen.at<double>(0,0) = cy*cz;
     Rgen.at<double>(0,1) = -cy*sz;
     Rgen.at<double>(0,2) = sy;
@@ -1163,14 +1010,9 @@ Mat VisualOdometry::rpy2homography(double roll,double pitch,double yaw,bool mode
 
 void VisualOdometry::drawmatch(Mat& rgbFrame,Mat& lastdraw)
 {
-   
-
-    for (int i = 0; i < this->points2.size(); i++) 
+    for (int i = 0; i < this->points2.size(); i++)
     {
-           
-
         //if(this->status[i])
-        //{
             if ((this->points1[i].x - this->points2[i].x) > 0) //nextpts - prevpts > 0 := feature pts move to right Scalar(R,G,B)  
             {
                 line(rgbFrame, this->points1[i], this->points2[i], Scalar(0, 0, 255), 1, 1, 0);
@@ -1183,15 +1025,11 @@ void VisualOdometry::drawmatch(Mat& rgbFrame,Mat& lastdraw)
                 circle(rgbFrame, this->points1[i], 2, Scalar(255, 0, 0), 1, 1,0);
                 circle(lastdraw, this->points2[i], 2, Scalar(255, 0, 0), 1, 1, 0);
             }
-
-       // }
     }
 }
 
 void VisualOdometry::drawoptflow(Mat& rgbFrame)
 {
-   
-
     for (int i = 0; i < this->points2.size(); i++) 
     {
            
@@ -1208,7 +1046,6 @@ void VisualOdometry::drawoptflow(Mat& rgbFrame)
                 line(rgbFrame, this->points1[i], this->points2[i], Scalar(0, 255, 0),1, 1, 0);
                 circle(rgbFrame, this->points1[i], 2, Scalar(255, 0, 0), 1, 1,0);
             }
-
         }
     }
 }
@@ -1248,5 +1085,3 @@ Mat VisualOdometry::get_H(void)
 {
     return this->H;
 }
-
-
