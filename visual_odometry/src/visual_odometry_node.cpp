@@ -24,8 +24,6 @@
 
 #include "boost/thread.hpp"
 #include "VisualOdometry.h"
-
-//#include "custom_msgs/DistanceCovStamped.h"
 #include "visual_odometry/DistanceCovStamped.h"
 #include "geometry_msgs/QuaternionStamped.h"
 
@@ -35,33 +33,24 @@
 #include <ros/package.h>
 
 #define DEFAULT_IMAGE_TOPIC "/image_raw"
-
-#define DEFAULT_IMU_TOPIC "/vectornav/rpy"
-
-//#define DEFAULT_OUTPUT_TOPIC "/visual/twistcov"
 #define DEFAULT_OUTPUT_TOPIC "distcov"
 
 #define MAX_COUNT 500
 #define DEFAULT_LOOP_RATE 10  //ROS Run-Rate in Hertz
 
-
-//#define FIXED_CAM_DEPTH 0.6 //60 cm
 #define FIXED_CAM_DEPTH 5.0
-//#define TRANSLATIONBIAS 0.158705  // %15.8705
-#define TRANSLATIONBIAS 0.0754  
+#define TRANSLATION_BIAS 0.0754
+
 using namespace std;
 using namespace cv;
 using namespace boost;
 
-double A[3][3] = { {623.911529 , 0.000000  ,315.403612},
-                   {0.000000   , 622.391874,249.380732},
-                   {0.000000   , 0.000000  ,1.000000  }   }; //Camera Intrinsic Parameter 
-
-
+double camera_intrinsic_parameter[3][3] = {{623.911529 , 0.000000  , 315.403612},
+                                           {0.000000   , 622.391874, 249.380732},
+                                           {0.000000   , 0.000000  , 1.000000  }   };
 
 
 class OdometryRunner {
-
     private :
         ros::NodeHandle nh;
         image_transport::ImageTransport it;
@@ -69,7 +58,6 @@ class OdometryRunner {
         
         //ros::Publisher twistcov_pub;
         ros::Publisher distcov_pub;
-        ros::Subscriber imu_sub;
         //geometry_msgs::TwistWithCovarianceStamped twistcov; // THIS IS OUR NODE MAIN MSG
         visual_odometry::DistanceCovStamped distcov;
 
@@ -94,15 +82,13 @@ class OdometryRunner {
         cv::Mat uiimg;
         ros::Rate loop_rate;
 
-        bool firstframe;        
-
-       
+        bool is_first_frame;
 
     public  : 
         OdometryRunner()
             : nh("~"),
               it(nh),
-              Intrinsic(3, 3,CV_64F, A),
+              Intrinsic(3, 3, CV_64F, camera_intrinsic_parameter),
               loop_rate(DEFAULT_LOOP_RATE)
         {
             std::string filename = ros::package::getPath("visual_odometry") + "/outcov.txt";
@@ -119,7 +105,7 @@ class OdometryRunner {
             
             ui_thread = thread(bind(&OdometryRunner::uiThread,this));
 
-            this->nh.param( "bias", this->translationbias, TRANSLATIONBIAS);
+            this->nh.param("bias", this->translationbias, TRANSLATION_BIAS);
             
             ROS_INFO( "translation bias percentage: %lf", this->translationbias );
             
@@ -137,10 +123,10 @@ class OdometryRunner {
             /*DEPTH and BIAS is FIXED*/
 
             this->depth = FIXED_CAM_DEPTH; //60cm
-            //this->translationbias = TRANSLATIONBIAS; // %15.8705 bias value of translation vector
+            //this->translationbias = TRANSLATION_BIAS; // %15.8705 bias value of translation vector
             
             /*Need to publish the first frame time to the system*/
-            this->firstframe = true;
+            this->is_first_frame = true;
         }
 
         ~OdometryRunner(){}
@@ -175,7 +161,7 @@ class OdometryRunner {
                 ROS_INFO("----IMG Process OKAY----");
                 
            
-                if(this->firstframe)
+                if(this->is_first_frame)
                 {
                     /*---- Publish time and zero velocity to initiate odom system ----*/
                     ROS_INFO("--Publishing Start MSG--");
@@ -204,7 +190,7 @@ class OdometryRunner {
                     this->distcov_pub.publish(this->distcov);
 
                     this->last_time = this->current_time;
-                    this->firstframe = false;
+                    this->is_first_frame = false;
                 }
 
 
