@@ -42,7 +42,7 @@ VisualOdometry::VisualOdometry(Mat Intrinsic)
     
  }
 
-VisualOdometry::VisualOdometry(Mat Intrinsic,unsigned char setup)
+VisualOdometry::VisualOdometry(Mat Intrinsic,bool setup)
 :termcrit(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 20, 0.03),
  winSize(31, 31),
  svd(),
@@ -72,7 +72,7 @@ VisualOdometry::~VisualOdometry(){}
 
 //Private Function
 
-bool VisualOdometry::iszero(Point2f x)
+bool VisualOdometry::is_zero(Point2f x)
 {
 	return ((x.x == 0.0) && (x.y == 0.0));
 }
@@ -284,7 +284,7 @@ bool VisualOdometry::estimate_homographycovariancematrix(cv::Mat& covH)
   //cout << " --Jp--" <<endl;
   //printcvMat(Jp);
   /*Backward Error Propagation*/
-  cv::Mat covP = (Jp.t()*this->cov_matchedfeature*Jp).inv(DECOMP_SVD); // (Jpt * CovX * Jp)^+ psudoinverse of cv must use inv SVD
+  cv::Mat covP = (Mat)(Jp.t()*this->cov_matchedfeature*Jp).inv(DECOMP_SVD); // (Jpt * CovX * Jp)^+ psudoinverse of cv must use inv SVD
     //cout << " --Jp--" <<endl;
     //      printcvMat(Jp);
 
@@ -694,8 +694,8 @@ bool VisualOdometry::compute_odometry_lkoptflow(Mat InputFrame,Mat& Drawframe,Ma
             }
         }
                   
-        vector<Point2f>::iterator newIter1 = std::remove_if( this->points1.begin() , this->points1.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
-        vector<Point2f>::iterator newIter2 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
+        vector<Point2f>::iterator newIter1 = std::remove_if( this->points1.begin() , this->points1.end() , std::bind(&VisualOdometry::is_zero,this, std::placeholders::_1 ));
+        vector<Point2f>::iterator newIter2 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::is_zero,this, std::placeholders::_1 ));
         this->points1.resize( newIter1 -  this->points1.begin() );
         this->points2.resize( newIter2 -  this->points2.begin() );
                    
@@ -800,8 +800,8 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
             }
         }
                   
-        vector<Point2f>::iterator newIter1 = std::remove_if( this->points1.begin() , this->points1.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
-        vector<Point2f>::iterator newIter2 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
+        vector<Point2f>::iterator newIter1 = std::remove_if( this->points1.begin() , this->points1.end() , std::bind(&VisualOdometry::is_zero,this, std::placeholders::_1 ));
+        vector<Point2f>::iterator newIter2 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::is_zero,this, std::placeholders::_1 ));
         this->points1.resize( newIter1 -  this->points1.begin() );
         this->points2.resize( newIter2 -  this->points2.begin() );
                    
@@ -826,8 +826,8 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
             }
         }
                   
-        vector<Point2f>::iterator newIter3 = std::remove_if( this->points1.begin() , this->points1.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
-        vector<Point2f>::iterator newIter4 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::iszero,this, std::placeholders::_1 ));
+        vector<Point2f>::iterator newIter3 = std::remove_if( this->points1.begin() , this->points1.end() , std::bind(&VisualOdometry::is_zero,this, std::placeholders::_1 ));
+        vector<Point2f>::iterator newIter4 = std::remove_if( this->points2.begin() , this->points2.end() , std::bind(&VisualOdometry::is_zero,this, std::placeholders::_1 ));
         this->points1.resize( newIter3 -  this->points1.begin() );
         this->points2.resize( newIter4 -  this->points2.begin() );
         
@@ -1157,7 +1157,7 @@ Mat VisualOdometry::rpy2homography(double roll,double pitch,double yaw,bool mode
     Rgen.at<double>(2,2) = cx*cy;
 
     
-    return (this->A*Rgen*this->Ainv);
+    return (Mat)(this->A*Rgen*this->Ainv);
 
 }
 

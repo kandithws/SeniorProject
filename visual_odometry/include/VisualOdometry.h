@@ -32,11 +32,11 @@
 #define MAX_COUNT 500
 #define PI 3.14159265
 
-#define PRINT_DISABLE 0x00
-#define PRINT_ENABLE 0x01
+#define PRINT_DISABLE false
+#define PRINT_ENABLE true
 
-#define DRAW_DISABLE 0x00
-#define DRAW_ENABLE 0x10
+#define DRAW_DISABLE false
+#define DRAW_ENABLE true
 
 #define DEGREE true
 #define RADIAN false
@@ -68,8 +68,8 @@ private:
    
 
     bool decomp_check;
-    unsigned char printflag;
-    unsigned char drawableflag;
+    bool printflag;
+    bool drawableflag;
     //Homodecomposer
 
     cv::Mat A;
@@ -116,7 +116,7 @@ private:
     //cv::Mat ransac_ptsold;
     /*Private Function*/
 
-    bool iszero(cv::Point2f x);
+    bool is_zero(cv::Point2f x);
     double homography_calcdenormalizedfactor(cv::Mat Hp);
     bool homodecomp_compute(cv::Mat H,cv::Mat& R,cv::Mat& t,cv::Mat& n);
 
@@ -134,7 +134,7 @@ private:
 public:
     VisualOdometry(void);
     VisualOdometry(cv::Mat Intrinsic);
-    VisualOdometry(cv::Mat Intrinsic,unsigned char setup);
+    VisualOdometry(cv::Mat Intrinsic, bool setup);
     virtual ~VisualOdometry();
     
    // bool compute_odometry(cv::Mat InputFrame,cv::Mat& Rotation,cv::Mat& Translation,cv::Mat& Normal);

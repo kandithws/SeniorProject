@@ -64,7 +64,7 @@ class OdometryRunner {
         ros::Time current_time, last_time;
         
         double depth;
-        double translationbias;
+        double translation_bias;
         double rate;
 
         double Covyaw;
@@ -101,14 +101,13 @@ class OdometryRunner {
 
             //this->imu_sub = nh.subscribe(DEFAULT_IMU_TOPIC,1,&OdometryRunner::imuCallback,this);
             
-            this->vid_odo   = VisualOdometry(Intrinsic,DRAW_ENABLE);
+            this->vid_odo   = VisualOdometry(Intrinsic,DRAW_DISABLE);
             
             ui_thread = thread(bind(&OdometryRunner::uiThread,this));
 
-            this->nh.param("bias", this->translationbias, TRANSLATION_BIAS);
+            this->nh.param("bias", this->translation_bias, TRANSLATION_BIAS);
             
-            ROS_INFO( "translation bias percentage: %lf", this->translationbias );
-            
+            ROS_INFO( "translation bias percentage: %lf", this->translation_bias);
 
             /*Odometry Publisher Initialize*/
             //this->twistcov_pub = nh.advertise<geometry_msgs::TwistWithCovarianceStamped>(DEFAULT_OUTPUT_TOPIC, 50);
@@ -123,7 +122,7 @@ class OdometryRunner {
             /*DEPTH and BIAS is FIXED*/
 
             this->depth = FIXED_CAM_DEPTH; //60cm
-            //this->translationbias = TRANSLATION_BIAS; // %15.8705 bias value of translation vector
+            //this->translation_bias = TRANSLATION_BIAS; // %15.8705 bias value of translation vector
             
             /*Need to publish the first frame time to the system*/
             this->is_first_frame = true;
@@ -140,119 +139,116 @@ class OdometryRunner {
         /*------START IMAGE PROCESSING HERE---------*/
        
         try {
-                this->cv_in_ptr = cv_bridge::toCvCopy( msg, sensor_msgs::image_encodings::BGR8 );
-                this->inimg = this->cv_in_ptr->image;
-                
-                this->uiimg = this->inimg;
-                
-                
-                //this->vid_odo.compute_odometry_lkoptflow(this->inimg,this->uiimg,this->R,this->t,this->n);
-                this->vid_odo.compute_odometry_lkoptflowCov(this->inimg,this->uiimg,this->R,this->t,this->n,CovT,Covyaw);
-                //this->outfile << "Test" <<endl;
-                /*
-                if(!CovT.empty())
-                {
-                    //writing output to file
+            this->cv_in_ptr = cv_bridge::toCvCopy( msg, sensor_msgs::image_encodings::BGR8 );
+            this->inimg = this->cv_in_ptr->image;
 
-                    this->outfile << CovT.at<double>(0,0) << "," << CovT.at<double>(1,1) << "," << CovT.at<double>(2,2) << ","<< Covyaw << std::endl;  
-                }
-                */
-                
-                ROS_INFO("----IMG Process OKAY----");
-                
-           
-                if(this->is_first_frame)
-                {
-                    /*---- Publish time and zero velocity to initiate odom system ----*/
-                    ROS_INFO("--Publishing Start MSG--");
-                    this->current_time = ros::Time::now();
-                    /*twistcov.header.stamp = this->current_time;
-                    twistcov.twist.twist.linear.x = 0;
-                    twistcov.twist.twist.linear.y = 0;
-                    twistcov.twist.twist.linear.z = 0;
+            this->uiimg = this->inimg;
 
 
-                    twistcov.twist.twist.angular.x = 0;
-                    twistcov.twist.twist.angular.y = 0;
-                    twistcov.twist.twist.angular.z = 0;
+            this->vid_odo.compute_odometry_lkoptflow(this->inimg,this->uiimg,this->R,this->t,this->n);
+            //this->vid_odo.compute_odometry_lkoptflowCov(this->inimg,this->uiimg,this->R,this->t,this->n,CovT,Covyaw);
+            //this->outfile << "Test" <<endl;
+            /*
+            if(!CovT.empty())
+            {
+                //writing output to file
 
-                    twistcov_pub.publish(twistcov);*/
-                    this->distcov.header.stamp = this->current_time;
-                    this->distcov.header.frame_id = msg->header.frame_id;
-                    this->distcov.translation.x = 0;
-                    this->distcov.translation.y = 0;
-                    this->distcov.translation.z = 0;
-
-                    this->distcov.angular.x = 0;
-                    this->distcov.angular.y = 0;
-                    this->distcov.angular.z = 0;
-
-                    this->distcov_pub.publish(this->distcov);
-
-                    this->last_time = this->current_time;
-                    this->is_first_frame = false;
-                }
-
-
-                /*-----------Publishing Odometry MSG-------------*/
-                if(! this->t.empty() )    
-                {          
-                    ROS_INFO("----CALCULATING----");
-                    
-                    double roll,pitch,yaw;
-                    vid_odo.dcm2angle(this->R,roll,pitch,yaw,RADIAN);
-
-                    
-                    /*Change output vector to ROS twist velocity*/
-                    this->current_time = ros::Time::now();
-                    ros::Duration dur = this->current_time - this->last_time;
-                    
-                    double deltatime = dur.toSec();
-                    
-                    
-                    //deltatime = 1.0/(double)DEFAULT_LOOP_RATE;
-
-                    
-                    //cv::Mat output_twist = ((this->depth*this->t)*(1.0 + this->translationbias))/ deltatime;  
-                    cv::Mat output_dist = (this->depth*this->t)*(1.0 + this->translationbias); 
-                    
-                    /*FOR THISCASE we assume that optflow calc fast ->> SO we rexlaxed deltatime to const*/
-
-                    ROS_INFO("---Translation Out----");
-                    vid_odo.printcvMat(output_dist);
-                    ROS_INFO("Yaw = %lf",yaw);
-                    //ROS_INFO("Deltatime in sec : %lf",deltatime);
-                    /*twistcov.header.stamp = this->current_time;
-                    twistcov.twist.twist.linear.x = output_twist.at<double>(0);
-                    twistcov.twist.twist.linear.y = output_twist.at<double>(1);
-                    twistcov.twist.twist.linear.z = 0;
-
-
-                    twistcov.twist.twist.angular.x = 0;
-                    twistcov.twist.twist.angular.y = 0;
-                    twistcov.twist.twist.angular.z = yaw/deltatime;
-                    this->last_time = this->current_time;
-                    twistcov_pub.publish(twistcov);*/
-
-                    this->distcov.header.stamp = this->current_time;
-                    //this->distcov.deltatime = dur;
-                    this->distcov.deltatime.data = dur;
-                    this->distcov.translation.x = output_dist.at<double>(0);
-                    this->distcov.translation.y = output_dist.at<double>(1);
-                    this->distcov.translation.z = 0;
-
-                    this->distcov.angular.x = 0;
-                    this->distcov.angular.y = 0;
-                    this->distcov.angular.z = yaw;
-
-                    this->distcov_pub.publish(this->distcov);
-                    
-
-                    this->last_time = this->current_time;
-                }
-
-
+                this->outfile << CovT.at<double>(0,0) << "," << CovT.at<double>(1,1) << "," << CovT.at<double>(2,2) << ","<< Covyaw << std::endl;
             }
+            */
+
+            ROS_INFO("----IMG Process OKAY----");
+
+
+            if(this->is_first_frame)
+            {
+                /*---- Publish time and zero velocity to initiate odom system ----*/
+                ROS_INFO("--Publishing Start MSG--");
+                this->current_time = ros::Time::now();
+                /*twistcov.header.stamp = this->current_time;
+                twistcov.twist.twist.linear.x = 0;
+                twistcov.twist.twist.linear.y = 0;
+                twistcov.twist.twist.linear.z = 0;
+
+
+                twistcov.twist.twist.angular.x = 0;
+                twistcov.twist.twist.angular.y = 0;
+                twistcov.twist.twist.angular.z = 0;
+
+                twistcov_pub.publish(twistcov);*/
+                this->distcov.header.stamp = this->current_time;
+                this->distcov.header.frame_id = msg->header.frame_id;
+                this->distcov.translation.x = 0;
+                this->distcov.translation.y = 0;
+                this->distcov.translation.z = 0;
+
+                this->distcov.angular.x = 0;
+                this->distcov.angular.y = 0;
+                this->distcov.angular.z = 0;
+
+                this->distcov_pub.publish(this->distcov);
+
+                this->last_time = this->current_time;
+                this->is_first_frame = false;
+            }
+
+            /*-----------Publishing Odometry MSG-------------*/
+            if(! this->t.empty() )
+            {
+                ROS_INFO("----CALCULATING----");
+
+                double roll,pitch,yaw;
+                vid_odo.dcm2angle(this->R,roll,pitch,yaw,RADIAN);
+
+
+                /*Change output vector to ROS twist velocity*/
+                this->current_time = ros::Time::now();
+                ros::Duration dur = this->current_time - this->last_time;
+
+                double deltatime = dur.toSec();
+
+
+                //deltatime = 1.0/(double)DEFAULT_LOOP_RATE;
+
+
+                //cv::Mat output_twist = ((this->depth*this->t)*(1.0 + this->translation_bias))/ deltatime;
+                cv::Mat output_dist = (Mat)((this->depth*this->t)*(1.0 + this->translation_bias));
+
+                /*FOR THISCASE we assume that optflow calc fast ->> SO we rexlaxed deltatime to const*/
+
+                ROS_INFO("---Translation Out----");
+                vid_odo.printcvMat(output_dist);
+                ROS_INFO("Yaw = %lf",yaw);
+                //ROS_INFO("Deltatime in sec : %lf",deltatime);
+                /*twistcov.header.stamp = this->current_time;
+                twistcov.twist.twist.linear.x = output_twist.at<double>(0);
+                twistcov.twist.twist.linear.y = output_twist.at<double>(1);
+                twistcov.twist.twist.linear.z = 0;
+
+
+                twistcov.twist.twist.angular.x = 0;
+                twistcov.twist.twist.angular.y = 0;
+                twistcov.twist.twist.angular.z = yaw/deltatime;
+                this->last_time = this->current_time;
+                twistcov_pub.publish(twistcov);*/
+
+                this->distcov.header.stamp = this->current_time;
+                //this->distcov.deltatime = dur;
+                this->distcov.deltatime.data = dur;
+                this->distcov.translation.x = output_dist.at<double>(0);
+                this->distcov.translation.y = output_dist.at<double>(1);
+                this->distcov.translation.z = 0;
+
+                this->distcov.angular.x = 0;
+                this->distcov.angular.y = 0;
+                this->distcov.angular.z = yaw;
+
+                this->distcov_pub.publish(this->distcov);
+
+
+                this->last_time = this->current_time;
+            }
+        }
 
         catch( cv_bridge::Exception &e ) 
             {
@@ -272,24 +268,19 @@ class OdometryRunner {
 
     void uiThread()
     {
-         while(ros::ok())
-          {
+        while(ros::ok())
+        {
             if(this->uiimg.empty())
             {
               //ROS_INFO("PROCESSING");
             }
             else
             {
-                
-               imshow(rawWindow,this->uiimg);
+                imshow(rawWindow,this->uiimg);
                 waitKey(5);
-            }   
-          }
+            }
+        }
     }
-
-    
-    
- 
 }; //end class
 
 int main( int argc, char **argv ) {
