@@ -101,7 +101,7 @@ class OdometryRunner {
 
             //this->imu_sub = nh.subscribe(DEFAULT_IMU_TOPIC,1,&OdometryRunner::imuCallback,this);
             
-            this->vid_odo   = VisualOdometry(Intrinsic,DRAW_DISABLE);
+            this->vid_odo   = VisualOdometry(Intrinsic,DRAW_ENABLE);
             
             ui_thread = thread(bind(&OdometryRunner::uiThread,this));
 
