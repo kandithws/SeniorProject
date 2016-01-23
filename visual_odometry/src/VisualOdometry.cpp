@@ -25,7 +25,7 @@ VisualOdometry::VisualOdometry(Mat Intrinsic)
  dsvd(),
  mat_1(3, 3,CV_64F,Scalar(0.0)),
  mat_2(3, 3,CV_64F,Scalar(0.0)),
- detector(400),
+ //detector(400),
  matcher(NORM_L2)
  {
     this->needToInit = true;
@@ -49,7 +49,7 @@ VisualOdometry::VisualOdometry(Mat Intrinsic,bool setup)
  dsvd(),
  mat_1(3, 3,CV_64F,Scalar(0.0)),
  mat_2(3, 3,CV_64F,Scalar(0.0)),
- detector(400),
+ //detector(400),
  matcher(NORM_L2)
  {
     this->needToInit = true;
@@ -147,8 +147,6 @@ bool VisualOdometry::homodecomp_compute(cv::Mat H,cv::Mat& R,cv::Mat& t,cv::Mat&
     
     double beta = sqrt(1.0- (alpha*alpha));
    // double (beta2) = -beta;
-
- 
     
    this->mat_1.at<double>(0,0) = alpha;
    this->mat_2.at<double>(0,0) = alpha;
@@ -168,14 +166,10 @@ bool VisualOdometry::homodecomp_compute(cv::Mat H,cv::Mat& R,cv::Mat& t,cv::Mat&
    this->n2 = w2*n2;
    this->t1 = (1.0/w1)*(-1.0*beta*U.col(0)+((eigen[2]/eigen[1])-(s*alpha))*U.col(2));
    this->t2 = (1.0/w2)*(-1.0*(-beta)*U.col(0)+((eigen[2]/eigen[1])-(s*alpha))*U.col(2));
-    
-   
 
     double roll1,pitch1,yaw1,roll2,pitch2,yaw2;
     this->dcm2angle(R1,roll1,pitch1,yaw1,DEGREE);   
     this->dcm2angle(R2,roll2,pitch2,yaw2,DEGREE);
-    
-         
     
     double norm1,norm2;
     //finding minimum norm between [roll1 pitch1] and [roll2 pitch2]
@@ -371,13 +365,10 @@ bool VisualOdometry::estimate_svdelementjacobian(cv::Mat inputD,cv::Mat& Ju,cv::
           vect_Jv.push_back(Jv_buff.at<double>(i,j));
         }
       }
-     
-
       
       vect_Ju.copyTo(Ju.col(jcb_col));
       vect_Jv.copyTo(Jv.col(jcb_col));
       jcb_col++;
-
 
     } // end j
   } //end i
@@ -750,12 +741,6 @@ bool VisualOdometry::compute_odometry_lkoptflow(Mat InputFrame,Mat& Drawframe,Ma
 
 }
 
-
-
-
-
-
-
 bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& Drawframe,cv::Mat& Rotation,cv::Mat& Translation,cv::Mat& Normal,cv::Mat& Covt,double& covYaw)
 {
 	InputFrame.copyTo(this->rgbFrames);
@@ -981,106 +966,99 @@ bool VisualOdometry::compute_odometry_lkoptflowCov(cv::Mat InputFrame,cv::Mat& D
 
 /*----------------------   Using SURF Feature --------------------------*/
 
-bool VisualOdometry::compute_odometry_SURF(cv::Mat InputFrame,cv::Mat& Drawframe,cv::Mat& lastDrawframe,cv::Mat& Rotation,cv::Mat& Translation,cv::Mat& Normal)
-{
-
-    InputFrame.copyTo(this->rgbFrames);
-    cvtColor(this->rgbFrames,this->grayFrames, CV_BGR2GRAY);
-    
-    if(this->needToInit)
-    {
-        
-        
-      //-- Step 0: Detect the keypoints using SURF Detector of Previous image
-      this->detector.detect(this->grayFrames , this->keypoints_new );
-
-      this->extractor.compute(this->grayFrames,this->keypoints_new,this->descriptors_new);
- 
-
-        this->needToInit = false;
-    } 
-    else if(!(this->keypoints_prev.empty()))
-    {
-      
-     
-
-      //-- Step 1: Detect the keypoints using SURF Detector
-      this->detector.detect(this->grayFrames,this->keypoints_new);
-     
-      //-- Step 2: Calculate descriptors (feature vectors)
-      this->extractor.compute(this->grayFrames,this->keypoints_new,this->descriptors_new);
-       
-
-      //-- Step 3: Matching descriptor vectors using BFmatcher
-      
-      matcher.match( descriptors_prev, descriptors_new, matches );
-     
-         
-
-      for( int i = 0; i < matches.size(); i++ )
-      {
-
-    //-- Get the keypoints from the good matches
-       this->points2.push_back( keypoints_prev[ matches[i].queryIdx ].pt );
-       this->points1.push_back( keypoints_new[ matches[i].trainIdx ].pt );
-      }
-      
-
-      if(this->drawableflag)
-      {
-          
-          this->drawmatch(Drawframe,lastDrawframe);    
-      }            
-
-
-      this->H = findHomography(this->points2,this->points1,CV_RANSAC,3,cv::noArray() );
-
-      cout << "---------Homography--------" << endl;
-      this->printcvMat(this->H);
-
-      this->decomp_check = this->homodecomp_compute(this->H,this->R,this->t,this->n); 
-
-        if(this->decomp_check)
-        { 
-          cout << "---------- R--------"<< endl;
-            this->printcvMat(R);
-            Rotation = this->R;
-            cout << "---------- T--------"<< endl;
-            this->printcvMat(t);
-            Translation = this->t;
-            cout << "---------- N--------"<< endl;
-            this->printcvMat(n);
-            Normal = this->n;
-            
-            this->result = true;
-        
-        }
-  
-    }
-      
-    if(this->decomp_check) //if Decomp Error -> Go get new sample image
-    {
-        
-        swap(this->points2,this->points1);
-        swap(this->keypoints_prev,this->keypoints_new);
-        this->descriptors_prev = this->descriptors_new;
-
-        this->descriptors_new = Mat();
-        this->keypoints_new.clear();
-        this->points1.clear();   //pts2 == prev, pts1 == newpts
-        this->grayFrames.copyTo(this->prevGrayFrame);  
-       
-        return this->result;
-    }
-      
-      
-      //-- Get the corners from the image_1 ( the object to be "detected" )
-
-}
-
-
-
-
+//bool VisualOdometry::compute_odometry_SURF(cv::Mat InputFrame,cv::Mat& Drawframe,cv::Mat& lastDrawframe,cv::Mat& Rotation,cv::Mat& Translation,cv::Mat& Normal)
+//{
+//
+//    InputFrame.copyTo(this->rgbFrames);
+//    cvtColor(this->rgbFrames,this->grayFrames, CV_BGR2GRAY);
+//
+//    if(this->needToInit)
+//    {
+//
+//
+//      //-- Step 0: Detect the keypoints using SURF Detector of Previous image
+//      this->detector.detect(this->grayFrames , this->keypoints_new );
+//
+//      this->extractor.compute(this->grayFrames,this->keypoints_new,this->descriptors_new);
+//
+//
+//        this->needToInit = false;
+//    }
+//    else if(!(this->keypoints_prev.empty()))
+//    {
+//
+//
+//
+//      //-- Step 1: Detect the keypoints using SURF Detector
+//      this->detector.detect(this->grayFrames,this->keypoints_new);
+//
+//      //-- Step 2: Calculate descriptors (feature vectors)
+//      this->extractor.compute(this->grayFrames,this->keypoints_new,this->descriptors_new);
+//
+//
+//      //-- Step 3: Matching descriptor vectors using BFmatcher
+//
+//      matcher.match( descriptors_prev, descriptors_new, matches );
+//
+//
+//
+//      for( int i = 0; i < matches.size(); i++ )
+//      {
+//
+//    //-- Get the keypoints from the good matches
+//       this->points2.push_back( keypoints_prev[ matches[i].queryIdx ].pt );
+//       this->points1.push_back( keypoints_new[ matches[i].trainIdx ].pt );
+//      }
+//
+//
+//      if(this->drawableflag)
+//      {
+//
+//          this->drawmatch(Drawframe,lastDrawframe);
+//      }
+//
+//
+//      this->H = findHomography(this->points2,this->points1,CV_RANSAC,3,cv::noArray() );
+//
+//      cout << "---------Homography--------" << endl;
+//      this->printcvMat(this->H);
+//
+//      this->decomp_check = this->homodecomp_compute(this->H,this->R,this->t,this->n);
+//
+//        if(this->decomp_check)
+//        {
+//          cout << "---------- R--------"<< endl;
+//            this->printcvMat(R);
+//            Rotation = this->R;
+//            cout << "---------- T--------"<< endl;
+//            this->printcvMat(t);
+//            Translation = this->t;
+//            cout << "---------- N--------"<< endl;
+//            this->printcvMat(n);
+//            Normal = this->n;
+//
+//            this->result = true;
+//
+//        }
+//
+//    }
+//
+//    if(this->decomp_check) //if Decomp Error -> Go get new sample image
+//    {
+//        swap(this->points2,this->points1);
+//        swap(this->keypoints_prev,this->keypoints_new);
+//        this->descriptors_prev = this->descriptors_new;
+//
+//        this->descriptors_new = Mat();
+//        this->keypoints_new.clear();
+//        this->points1.clear();   //pts2 == prev, pts1 == newpts
+//        this->grayFrames.copyTo(this->prevGrayFrame);
+//
+//        return this->result;
+//    }
+//
+//      //-- Get the corners from the image_1 ( the object to be "detected" )
+//}
 
 void VisualOdometry::printcvMat(Mat P)
 {
