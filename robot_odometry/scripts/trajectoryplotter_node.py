@@ -12,7 +12,6 @@ from robot_odometry.srv import *
 
 
 class TrajectoryPlotter:
-    # Constructor
     def __init__(self):
         self.X = [0]
         self.Y = [0]
@@ -31,10 +30,6 @@ class TrajectoryPlotter:
         #plt.ion()
         plt.grid()
         
-
-
- 
-
     # Print the polygon
     def update(self,_):
         try:
@@ -60,7 +55,6 @@ class TrajectoryPlotter:
 ## class for ROSNODE
 class UiRunner:
     def __init__(self):
-       
         self.tp = TrajectoryPlotter()
         
         self.direction = 0
@@ -92,10 +86,6 @@ class UiRunner:
         rest = Uisetstartpoint()
         rest.status = 'OK'
         return rest
-
-
-
-
     
     def uichangeaxis_handle(self,req):
         self.tp.axislimit[0] = req.xmin
@@ -108,7 +98,6 @@ class UiRunner:
         res.status = st
         return res
 
-
     def odomCallback(self,data):
         x = data.pose.pose.position.x
         y = data.pose.pose.position.y
@@ -118,9 +107,6 @@ class UiRunner:
         self.tp.add(x,y,uth,vth)
         cout = "Update : X = %f , Y = %f , th = %f \n" % (x,y,th)
         rospy.loginfo(cout)
-
-
-
         
 
 if __name__ == '__main__':

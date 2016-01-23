@@ -69,8 +69,7 @@ class OdometryRunner {
 
         double Covyaw;
         cv::Mat CovT;
-        
-        
+
         cv_bridge::CvImagePtr cv_in_ptr;
         std::string img_topic;
         std::string rawWindow;
@@ -85,7 +84,7 @@ class OdometryRunner {
         bool is_first_frame;
 
     public  : 
-        OdometryRunner()
+        OdometryRunner(bool isDrawEnable=DRAW_ENABLE)
             : nh("~"),
               it(nh),
               Intrinsic(3, 3, CV_64F, camera_intrinsic_parameter),
@@ -101,10 +100,11 @@ class OdometryRunner {
 
             //this->imu_sub = nh.subscribe(DEFAULT_IMU_TOPIC,1,&OdometryRunner::imuCallback,this);
             
-            this->vid_odo   = VisualOdometry(Intrinsic,DRAW_ENABLE);
-            
-            ui_thread = thread(bind(&OdometryRunner::uiThread,this));
-
+            this->vid_odo   = VisualOdometry(Intrinsic,isDrawEnable);
+            if(isDrawEnable)
+            {
+                ui_thread = thread(bind(&OdometryRunner::uiThread,this));
+            }
             this->nh.param("bias", this->translation_bias, TRANSLATION_BIAS);
             
             ROS_INFO( "translation bias percentage: %lf", this->translation_bias);
@@ -116,6 +116,7 @@ class OdometryRunner {
             this->last_time = ros::Time::now();
 
             /*OpenCV UI Window Initalization*/      
+
             rawWindow = "Visual Odometry Frame output";
             namedWindow(rawWindow, CV_WINDOW_AUTOSIZE);
 
@@ -131,19 +132,16 @@ class OdometryRunner {
         ~OdometryRunner(){}
         
         ofstream outfile;
-        
 
     void imageCallback( const sensor_msgs::ImageConstPtr& msg )
     {
         
         /*------START IMAGE PROCESSING HERE---------*/
-       
         try {
             this->cv_in_ptr = cv_bridge::toCvCopy( msg, sensor_msgs::image_encodings::BGR8 );
             this->inimg = this->cv_in_ptr->image;
 
             this->uiimg = this->inimg;
-
 
             this->vid_odo.compute_odometry_lkoptflow(this->inimg,this->uiimg,this->R,this->t,this->n);
             //this->vid_odo.compute_odometry_lkoptflowCov(this->inimg,this->uiimg,this->R,this->t,this->n,CovT,Covyaw);
@@ -159,7 +157,6 @@ class OdometryRunner {
 
             ROS_INFO("----IMG Process OKAY----");
 
-
             if(this->is_first_frame)
             {
                 /*---- Publish time and zero velocity to initiate odom system ----*/
@@ -169,7 +166,6 @@ class OdometryRunner {
                 twistcov.twist.twist.linear.x = 0;
                 twistcov.twist.twist.linear.y = 0;
                 twistcov.twist.twist.linear.z = 0;
-
 
                 twistcov.twist.twist.angular.x = 0;
                 twistcov.twist.twist.angular.y = 0;
@@ -200,16 +196,13 @@ class OdometryRunner {
                 double roll,pitch,yaw;
                 vid_odo.dcm2angle(this->R,roll,pitch,yaw,RADIAN);
 
-
                 /*Change output vector to ROS twist velocity*/
                 this->current_time = ros::Time::now();
                 ros::Duration dur = this->current_time - this->last_time;
 
                 double deltatime = dur.toSec();
 
-
                 //deltatime = 1.0/(double)DEFAULT_LOOP_RATE;
-
 
                 //cv::Mat output_twist = ((this->depth*this->t)*(1.0 + this->translation_bias))/ deltatime;
                 cv::Mat output_dist = (Mat)((this->depth*this->t)*(1.0 + this->translation_bias));
@@ -224,7 +217,6 @@ class OdometryRunner {
                 twistcov.twist.twist.linear.x = output_twist.at<double>(0);
                 twistcov.twist.twist.linear.y = output_twist.at<double>(1);
                 twistcov.twist.twist.linear.z = 0;
-
 
                 twistcov.twist.twist.angular.x = 0;
                 twistcov.twist.twist.angular.y = 0;
@@ -245,20 +237,15 @@ class OdometryRunner {
 
                 this->distcov_pub.publish(this->distcov);
 
-
                 this->last_time = this->current_time;
             }
         }
-
         catch( cv_bridge::Exception &e ) 
-            {
+        {
                 ROS_ERROR( "cv_bridge exception: %s", e.what() );
                 return;
-            }     
-           
-           
-     
-            this->loop_rate.sleep();
+        }
+        this->loop_rate.sleep();
     }
 
     void imuCallback(const geometry_msgs::QuaternionStampedConstPtr& msg)
@@ -270,23 +257,22 @@ class OdometryRunner {
     {
         while(ros::ok())
         {
-            if(this->uiimg.empty())
+            if(!this->uiimg.empty())
             {
-              //ROS_INFO("PROCESSING");
-            }
-            else
-            {
-                imshow(rawWindow,this->uiimg);
+                imshow(rawWindow, this->uiimg);
                 waitKey(5);
             }
+//            else
+//            {
+//                ROS_INFO("PROCESSING");
+//            }
         }
     }
 }; //end class
 
 int main( int argc, char **argv ) {
-
         ros::init( argc, argv, "gun_optical_flow" );
-        OdometryRunner runner;
+        OdometryRunner runner(DRAW_DISABLE);
         ROS_INFO("---Visual Odometry Node---");
         ros::spin();
         runner.outfile.close();

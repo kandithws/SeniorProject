@@ -9,11 +9,13 @@
     <!-- Run robot_odometry -->
     <node pkg="robot_odometry" type="robot_odometry_node" name="robot_odometry">
          <remap from="/visual/distcov" to="/visual_odometry/distcov"/>
+         <remap from="odom" to="robot_odometry/odom"/>
     </node>
 
     <!-- Run trajectoryplotter -->
+    <!--
     <node pkg="robot_odometry" type="trajectoryplotter_node.py" name="trajectoryplotter">
        <remap from="odom" to="robot_odometry/odom"/>
     </node>
-    
+    -->
 </launch>
